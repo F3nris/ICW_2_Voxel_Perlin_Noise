@@ -3,7 +3,9 @@ package de.htw.mtm.icw2.core;
 import org.lwjgl.*;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
- 
+
+import de.htw.mtm.icw2.graphics.VoxelCubeRenderer;
+
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.*;
@@ -24,6 +26,7 @@ public class Core {
 	private GLFWKeyCallback keyCallback;
 	private GLFWErrorCallback errorCallback;
 	private long window;
+	private VoxelCubeRenderer test;
 	
 	private void init() {
 		errorCallback = GLFWErrorCallback.createPrint(System.err);
@@ -60,55 +63,29 @@ public class Core {
 		GL.createCapabilities();
 		glfwSwapInterval(1);
 		
-		int vao = glGenVertexArrays();
-		glBindVertexArray(vao);
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LESS);
 		
-		FloatBuffer vertices = BufferUtils.createFloatBuffer(3 * 6);
-		vertices.put(-0.6f).put(-0.4f).put(0f).put(1f).put(0f).put(0f);
-		vertices.put(0.6f).put(-0.4f).put(0f).put(0f).put(1f).put(0f);
-		vertices.put(0f).put(0.6f).put(0f).put(0f).put(0f).put(1f);
-		vertices.flip();
 		
-		int vbo = glGenBuffers();
-		glBindBuffer(GL_ARRAY_BUFFER, vbo);
-		glBufferData(GL_ARRAY_BUFFER, vertices, GL_STATIC_DRAW);
-		
+		test = new VoxelCubeRenderer();
 	}
 	
 	private void loop() {
 		while (glfwWindowShouldClose(window) != GLFW_TRUE) {
-		    /* Do something */
 			glClearColor(0.3f, 0.67f, 1.0f, 1.0f);
 			
-			/* Set viewport and clear screen */
-            glViewport(0, 0, 640, 480);
-            glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+			glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+			
+			glEnable(GL_DEPTH_TEST);
+			// Accept fragment if it closer to the camera than the former one
+			glDepthFunc(GL_LESS);
+			
+			//test.update();
+			//Matrix4f model = Matrix4f.rotate(angle, 0f, 0f, 1f);
+		    //glUniformMatrix4fv(uniModel, false, model.getBuffer());
 
-            /* Set ortographic projection */
-            glMatrixMode(GL_PROJECTION);
-            glLoadIdentity();
-            glOrtho(-(640/480), (640/480), -1f, 1f, 1f, -1f);
-            glMatrixMode(GL_MODELVIEW);
-
-            /* Rotate matrix */
-            glLoadIdentity();
-            glRotatef((float) glfwGetTime() * 50f, 0f, 0f, 1f);
-
-            /* Render triangle */
-            glBegin(GL_TRIANGLES);
-            glColor3f(1f, 0f, 0f);
-            glVertex3f(-0.5f, -0.5f, 0f);
-            glColor3f(0f, 1f, 0f);
-            glVertex3f(-0.5f, 0.5f, 0f);
-            glColor3f(0f, 1f, 0.f);
-            glVertex3f(0.5f, 0.5f, 0f);
-            glColor3f(1f, 0f, 0f);
-            glVertex3f(-0.5f, -0.5f, 0f);
-            glColor3f(0f, 1f, 0f);
-            glVertex3f(0.5f, 0.5f, 0f);
-            glColor3f(1f, 0f, 0f);
-            glVertex3f(0.5f, -0.5f, 0f);
-            glEnd();
+		    glDrawArrays(GL_TRIANGLES, 0, 108);
+			
 			
 			glfwSwapBuffers(window);
 			glfwPollEvents();
@@ -116,6 +93,8 @@ public class Core {
 	}
 	
 	private void dispose() {
+		test.delete();	
+		
 		glfwDestroyWindow(window);
 		keyCallback.release();
 		
