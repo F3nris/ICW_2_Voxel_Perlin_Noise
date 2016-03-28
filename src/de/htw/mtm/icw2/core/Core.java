@@ -41,6 +41,10 @@ public class Core {
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
 		
+		glEnable(GL_BLEND);
+	    glEnable(GL_CULL_FACE);
+	    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		
 		view = new Matrix4f();
 		projection = Matrix4f.perspective(140f, 640f/480f, 0.25f, 6f);
 		projection = projection.multiply(Matrix4f.translate(0, 0, -1.5f));
