@@ -5,14 +5,11 @@ import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
 
 import de.htw.mtm.icw2.graphics.VoxelCubeRenderer;
+import de.htw.mtm.icw2.util.Matrix4f;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL15.*;
-import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.system.MemoryUtil.*;
-
-import java.nio.FloatBuffer;
 
 
 /**
@@ -26,9 +23,32 @@ public class Core {
 	private GLFWKeyCallback keyCallback;
 	private GLFWErrorCallback errorCallback;
 	private long window;
-	private VoxelCubeRenderer test;
+	private VoxelCubeRenderer voxCube;
+	
+	Matrix4f view;
+	Matrix4f projection;
+	private float angle = 0f;
+	private double prevTime = glfwGetTime();
 	
 	private void init() {
+		initGLFW();
+		initKeyCallback();
+		
+		glfwMakeContextCurrent(window);
+		GL.createCapabilities();
+		glfwSwapInterval(1);
+		
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LESS);
+		
+		view = new Matrix4f();
+		projection = Matrix4f.perspective(140f, 640f/480f, 0.25f, 6f);
+		projection = projection.multiply(Matrix4f.translate(0, 0, -1.5f));
+		
+		voxCube = new VoxelCubeRenderer(view, projection);
+	}
+	
+	private void initGLFW() {
 		errorCallback = GLFWErrorCallback.createPrint(System.err);
 		glfwSetErrorCallback(errorCallback);
 		
@@ -47,7 +67,9 @@ public class Core {
 		    glfwTerminate();
 		    throw new RuntimeException("Failed to create the GLFW window");
 		}
-		
+	}
+	
+	private void initKeyCallback() {
 		keyCallback = new GLFWKeyCallback() {
 		    @Override
 		    public void invoke(long window, int key, int scancode, int action, int mods) {
@@ -57,35 +79,21 @@ public class Core {
 		    }
 		};
 		glfwSetKeyCallback(window, keyCallback);
-		
-		glfwMakeContextCurrent(window);
-		
-		GL.createCapabilities();
-		glfwSwapInterval(1);
-		
-		glEnable(GL_DEPTH_TEST);
-		glDepthFunc(GL_LESS);
-		
-		
-		test = new VoxelCubeRenderer();
 	}
-	
+
 	private void loop() {
 		while (glfwWindowShouldClose(window) != GLFW_TRUE) {
 			glClearColor(0.3f, 0.67f, 1.0f, 1.0f);
-			
 			glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 			
-			glEnable(GL_DEPTH_TEST);
-			// Accept fragment if it closer to the camera than the former one
-			glDepthFunc(GL_LESS);
+			voxCube.model = voxCube.model.multiply(Matrix4f.rotate(angle, 0f, 1f, 0f));
+			voxCube.updateUniModel();
 			
-			//test.update();
-			//Matrix4f model = Matrix4f.rotate(angle, 0f, 0f, 1f);
-		    //glUniformMatrix4fv(uniModel, false, model.getBuffer());
+			float delta = (float) (glfwGetTime() - prevTime);
+			prevTime = glfwGetTime();
+			angle += 0.01 * delta;
 
-		    glDrawArrays(GL_TRIANGLES, 0, 108);
-			
+			voxCube.render();
 			
 			glfwSwapBuffers(window);
 			glfwPollEvents();
@@ -93,7 +101,7 @@ public class Core {
 	}
 	
 	private void dispose() {
-		test.delete();	
+		voxCube.delete();
 		
 		glfwDestroyWindow(window);
 		keyCallback.release();

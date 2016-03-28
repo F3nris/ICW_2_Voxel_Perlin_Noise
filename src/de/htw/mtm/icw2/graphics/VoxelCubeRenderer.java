@@ -1,6 +1,9 @@
 package de.htw.mtm.icw2.graphics;
 
+import static org.lwjgl.opengl.GL11.GL_VIEWPORT;
+import static org.lwjgl.opengl.GL11.glDrawArrays;
 import static org.lwjgl.opengl.GL11.GL_FLOAT;
+import static org.lwjgl.opengl.GL11.GL_TRIANGLES;
 import static org.lwjgl.opengl.GL11.GL_TRUE;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
@@ -22,46 +25,48 @@ public class VoxelCubeRenderer {
 	private int fragmentShader;
 	private int shaderProgram;
 	
-	static final float VERTEX_BUFFER_CUBE [] = {
-		    -1.0f,-1.0f,-1.0f,
-		    -1.0f,-1.0f, 1.0f,
-		    -1.0f, 1.0f, 1.0f,
-		    1.0f, 1.0f,-1.0f,
-		    -1.0f,-1.0f,-1.0f,
-		    -1.0f, 1.0f,-1.0f,
-		    1.0f,-1.0f, 1.0f,
-		    -1.0f,-1.0f,-1.0f,
-		    1.0f,-1.0f,-1.0f,
-		    1.0f, 1.0f,-1.0f,
-		    1.0f,-1.0f,-1.0f,
-		    -1.0f,-1.0f,-1.0f,
-		    -1.0f,-1.0f,-1.0f,
-		    -1.0f, 1.0f, 1.0f,
-		    -1.0f, 1.0f,-1.0f,
-		    1.0f,-1.0f, 1.0f,
-		    -1.0f,-1.0f, 1.0f,
-		    -1.0f,-1.0f,-1.0f,
-		    -1.0f, 1.0f, 1.0f,
-		    -1.0f,-1.0f, 1.0f,
-		    1.0f,-1.0f, 1.0f,
-		    1.0f, 1.0f, 1.0f,
-		    1.0f,-1.0f,-1.0f,
-		    1.0f, 1.0f,-1.0f,
-		    1.0f,-1.0f,-1.0f,
-		    1.0f, 1.0f, 1.0f,
-		    1.0f,-1.0f, 1.0f,
-		    1.0f, 1.0f, 1.0f,
-		    1.0f, 1.0f,-1.0f,
-		    -1.0f, 1.0f,-1.0f,
-		    1.0f, 1.0f, 1.0f,
-		    -1.0f, 1.0f,-1.0f,
-		    -1.0f, 1.0f, 1.0f,
-		    1.0f, 1.0f, 1.0f,
-		    -1.0f, 1.0f, 1.0f,
-		    1.0f,-1.0f, 1.0f
+	public Matrix4f model;
+	
+	final float VERTEX_BUFFER_CUBE [] = {
+		    -0.5f,-0.5f,-0.5f,
+		    -0.5f,-0.5f, 0.5f,
+		    -0.5f, 0.5f, 0.5f,
+		    0.5f, 0.5f,-0.5f,
+		    -0.5f,-0.5f,-0.5f,
+		    -0.5f, 0.5f,-0.5f,
+		    0.5f,-0.5f, 0.5f,
+		    -0.5f,-0.5f,-0.5f,
+		    0.5f,-0.5f,-0.5f,
+		    0.5f, 0.5f,-0.5f,
+		    0.5f,-0.5f,-0.5f,
+		    -0.5f,-0.5f,-0.5f,
+		    -0.5f,-0.5f,-0.5f,
+		    -0.5f, 0.5f, 0.5f,
+		    -0.5f, 0.5f,-0.5f,
+		    0.5f,-0.5f, 0.5f,
+		    -0.5f,-0.5f, 0.5f,
+		    -0.5f,-0.5f,-0.5f,
+		    -0.5f, 0.5f, 0.5f,
+		    -0.5f,-0.5f, 0.5f,
+		    0.5f,-0.5f, 0.5f,
+		    0.5f, 0.5f, 0.5f,
+		    0.5f,-0.5f,-0.5f,
+		    0.5f, 0.5f,-0.5f,
+		    0.5f,-0.5f,-0.5f,
+		    0.5f, 0.5f, 0.5f,
+		    0.5f,-0.5f, 0.5f,
+		    0.5f, 0.5f, 0.5f,
+		    0.5f, 0.5f,-0.5f,
+		    -0.5f, 0.5f,-0.5f,
+		    0.5f, 0.5f, 0.5f,
+		    -0.5f, 0.5f,-0.5f,
+		    -0.5f, 0.5f, 0.5f,
+		    0.5f, 0.5f, 0.5f,
+		    -0.5f, 0.5f, 0.5f,
+		    0.5f,-0.5f, 0.5f
 		};
 	
-	static final float COLOR_BUFFER_CUBE [] = {
+	final float COLOR_BUFFER_CUBE [] = {
 	    0.583f,  0.771f,  0.014f,
 	    0.609f,  0.115f,  0.436f,
 	    0.327f,  0.483f,  0.844f,
@@ -100,17 +105,18 @@ public class VoxelCubeRenderer {
 	    0.982f,  0.099f,  0.879f
 	};
 	
-	public VoxelCubeRenderer() {
+	public VoxelCubeRenderer(Matrix4f view, Matrix4f projection) {
 		generateAndBindVAO();
 		generateVertexBuffer();
 		generateColorBuffer();
 		loadAndCompileShaders();
-		setupShaderParameters();
+		setupShaderParameters(view, projection);
 	}
 
 	private void generateAndBindVAO() {
 		vaoID = glGenVertexArrays();
 		glBindVertexArray(vaoID);
+		System.out.println(vaoID);
 	}
 	
 	private void generateVertexBuffer () {
@@ -170,7 +176,7 @@ public class VoxelCubeRenderer {
 		glUseProgram(shaderProgram);
 	}
 	
-	private void setupShaderParameters() {
+	private void setupShaderParameters(Matrix4f view, Matrix4f projection) {
 		int floatSize = 4;
 
 		glBindBuffer(GL_ARRAY_BUFFER, vertexBufferID);
@@ -184,20 +190,41 @@ public class VoxelCubeRenderer {
 		glVertexAttribPointer(colAttrib, 3, GL_FLOAT, false, 3 * floatSize, 0);
 		
 		int uniModel = glGetUniformLocation(shaderProgram, "model");
-		Matrix4f model = Matrix4f.scale(0.2f, 0.2f, 0.2f);
-		model = model.multiply(Matrix4f.rotate(50f, 40f, 50f, 1f));
-		model = model.multiply(Matrix4f.translate(0.5f, 0.5f, 0.5f));
-		
+		model = new Matrix4f();
 		glUniformMatrix4fv(uniModel, false, model.getBuffer());
 
 		int uniView = glGetUniformLocation(shaderProgram, "view");
-		Matrix4f view = new Matrix4f();
 		glUniformMatrix4fv(uniView, false, view.getBuffer());
 
 		int uniProjection = glGetUniformLocation(shaderProgram, "projection");
-		float ratio = 640f / 480f;
-		Matrix4f projection = Matrix4f.orthographic(-ratio, ratio, -1f, 1f, -1f, 1f);
 		glUniformMatrix4fv(uniProjection, false, projection.getBuffer());
+	}
+	
+	public void updateUniMVP(Matrix4f view, Matrix4f projection) {
+		updateUniModel();
+		updateUniView(view);
+		updateUniProjection(projection);
+	}
+	
+	public void updateUniModel() {
+		int uniModel = glGetUniformLocation(shaderProgram, "model");
+		glUniformMatrix4fv(uniModel, false, model.getBuffer());
+	}
+	
+	public void updateUniView(Matrix4f view) {
+		int uniView = glGetUniformLocation(shaderProgram, "view");
+		glUniformMatrix4fv(uniView, false, view.getBuffer());
+	}
+	
+	public void updateUniProjection(Matrix4f projection) {
+		int uniProjection = glGetUniformLocation(shaderProgram, "projection");
+		glUniformMatrix4fv(uniProjection, false, projection.getBuffer());
+	}
+	
+	public void render() {
+		glBindVertexArray(vaoID);
+		glDrawArrays(GL_TRIANGLES, 0, 108);
+		glBindVertexArray(0);
 	}
 	
 	public void delete() {
