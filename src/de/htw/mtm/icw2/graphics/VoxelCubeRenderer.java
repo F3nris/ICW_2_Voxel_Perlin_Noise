@@ -1,19 +1,21 @@
 package de.htw.mtm.icw2.graphics;
 
-import static org.lwjgl.opengl.GL11.GL_VIEWPORT;
-import static org.lwjgl.opengl.GL11.glDrawArrays;
-import static org.lwjgl.opengl.GL11.GL_FLOAT;
-import static org.lwjgl.opengl.GL11.GL_TRIANGLES;
-import static org.lwjgl.opengl.GL11.GL_TRUE;
+import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL12.*;
+import static org.lwjgl.opengl.GL13.*;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
 
+import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 
 import org.lwjgl.BufferUtils;
 
 import de.htw.mtm.icw2.util.Matrix4f;
+import de.htw.mtm.icw2.util.Vector3f;
+import de.htw.mtm.icw2.util.Vector4f;
 
 import static de.htw.mtm.icw2.util.ShaderReader.readShaderFromFile;
 
@@ -21,9 +23,18 @@ public class VoxelCubeRenderer {
 	private int vaoID;
 	private int vertexBufferID;
 	private int colorBufferID;
-	private int vertexShader;
-	private int fragmentShader;
-	private int shaderProgram;
+	
+	// TODO Set private
+	public int voxelShaderProgram;
+	private int voxelVertexShader;
+	private int voxelFragmentShader;
+	
+	public int wireShaderProgram;
+	private int wireVertexShader;
+	private int wireFragmentShader;
+	
+	private int textureID;
+	ByteBuffer texels;
 	
 	public Matrix4f model;
 	
@@ -142,62 +153,171 @@ public class VoxelCubeRenderer {
 	}
 	
 	private void loadAndCompileShaders () {
+		/////////////////////////////////////////////////////////////////////////
+		//                 Voxel Shader Program
+		/////////////////////////////////////////////////////////////////////////
 		String vertexSource = readShaderFromFile(getClass().getResource("./shader/voxel.vert").getPath());
-		vertexShader = glCreateShader(GL_VERTEX_SHADER);
-		glShaderSource(vertexShader, vertexSource);
-		glCompileShader(vertexShader);
+		voxelVertexShader = glCreateShader(GL_VERTEX_SHADER);
+		glShaderSource(voxelVertexShader, vertexSource);
+		glCompileShader(voxelVertexShader);
 		
-		int status = glGetShaderi(vertexShader, GL_COMPILE_STATUS);
+		int status = glGetShaderi(voxelVertexShader, GL_COMPILE_STATUS);
 		if (status != GL_TRUE) {
-		    throw new RuntimeException(glGetShaderInfoLog(vertexShader));
+		    throw new RuntimeException(glGetShaderInfoLog(voxelVertexShader));
 		}
 		
 		String fragmentSource = readShaderFromFile(getClass().getResource("./shader/voxel.frag").getPath());
-		fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-		glShaderSource(fragmentShader, fragmentSource);
-		glCompileShader(fragmentShader);
+		voxelFragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+		glShaderSource(voxelFragmentShader, fragmentSource);
+		glCompileShader(voxelFragmentShader);
 		
-		status = glGetShaderi(fragmentShader, GL_COMPILE_STATUS);
+		status = glGetShaderi(voxelFragmentShader, GL_COMPILE_STATUS);
 		if (status != GL_TRUE) {
-		    throw new RuntimeException(glGetShaderInfoLog(fragmentShader));
+		    throw new RuntimeException(glGetShaderInfoLog(voxelFragmentShader));
 		}
 		
-		shaderProgram = glCreateProgram();
-		glAttachShader(shaderProgram, vertexShader);
-		glAttachShader(shaderProgram, fragmentShader);
-		glBindFragDataLocation(shaderProgram, 0, "fragColor");
-		glLinkProgram(shaderProgram);
+		voxelShaderProgram = glCreateProgram();
+		glAttachShader(voxelShaderProgram, voxelVertexShader);
+		glAttachShader(voxelShaderProgram, voxelFragmentShader);
+		// TODO remove later
+		glBindFragDataLocation(voxelShaderProgram, 0, "fragColor");
+		glLinkProgram(voxelShaderProgram);
 		
-		status = glGetProgrami(shaderProgram, GL_LINK_STATUS);
+		status = glGetProgrami(voxelShaderProgram, GL_LINK_STATUS);
 		if (status != GL_TRUE) {
-		    throw new RuntimeException(glGetProgramInfoLog(shaderProgram));
+		    throw new RuntimeException(glGetProgramInfoLog(voxelShaderProgram));
 		}
 		
-		glUseProgram(shaderProgram);
+		/////////////////////////////////////////////////////////////////////////
+		//                 Wire Shader Program
+		/////////////////////////////////////////////////////////////////////////
+		
+		vertexSource = readShaderFromFile(getClass().getResource("./shader/wire.vert").getPath());
+		wireVertexShader = glCreateShader(GL_VERTEX_SHADER);
+		glShaderSource(wireVertexShader, vertexSource);
+		glCompileShader(wireVertexShader);
+		
+		status = glGetShaderi(wireVertexShader, GL_COMPILE_STATUS);
+		if (status != GL_TRUE) {
+		    throw new RuntimeException(glGetShaderInfoLog(wireVertexShader));
+		}
+		
+		fragmentSource = readShaderFromFile(getClass().getResource("./shader/wire.frag").getPath());
+		wireFragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+		glShaderSource(wireFragmentShader, fragmentSource);
+		glCompileShader(wireFragmentShader);
+		
+		status = glGetShaderi(wireFragmentShader, GL_COMPILE_STATUS);
+		if (status != GL_TRUE) {
+		    throw new RuntimeException(glGetShaderInfoLog(wireFragmentShader));
+		}
+		
+		wireShaderProgram = glCreateProgram();
+		glAttachShader(wireShaderProgram, wireVertexShader);
+		glAttachShader(wireShaderProgram, wireFragmentShader);
+		glLinkProgram(wireShaderProgram);
+		
+		status = glGetProgrami(wireShaderProgram, GL_LINK_STATUS);
+		if (status != GL_TRUE) {
+		    throw new RuntimeException(glGetProgramInfoLog(wireShaderProgram));
+		}
 	}
 	
 	private void setupShaderParameters(Matrix4f view, Matrix4f projection) {
+		glUseProgram(voxelShaderProgram);
 		int floatSize = 4;
 
 		glBindBuffer(GL_ARRAY_BUFFER, vertexBufferID);
-		int posAttrib = glGetAttribLocation(shaderProgram, "position");
+		int posAttrib = glGetAttribLocation(voxelShaderProgram, "position");
 		glEnableVertexAttribArray(posAttrib);
 		glVertexAttribPointer(posAttrib, 3, GL_FLOAT, false, 3 * floatSize, 0);
 		
 		glBindBuffer(GL_ARRAY_BUFFER, colorBufferID);
-		int colAttrib = glGetAttribLocation(shaderProgram, "color");
+		int colAttrib = glGetAttribLocation(voxelShaderProgram, "color");
 		glEnableVertexAttribArray(colAttrib);
 		glVertexAttribPointer(colAttrib, 3, GL_FLOAT, false, 3 * floatSize, 0);
 		
-		int uniModel = glGetUniformLocation(shaderProgram, "model");
-		model = new Matrix4f();
+		int uniModel = glGetUniformLocation(voxelShaderProgram, "model");
+		model = new Matrix4f();//.multiply(Matrix4f.translate(-1, -1, -2));
 		glUniformMatrix4fv(uniModel, false, model.getBuffer());
 
-		int uniView = glGetUniformLocation(shaderProgram, "view");
+		int uniView = glGetUniformLocation(voxelShaderProgram, "view");
 		glUniformMatrix4fv(uniView, false, view.getBuffer());
 
-		int uniProjection = glGetUniformLocation(shaderProgram, "projection");
+		int uniProjection = glGetUniformLocation(voxelShaderProgram, "projection");
 		glUniformMatrix4fv(uniProjection, false, projection.getBuffer());
+		
+		
+		
+		int n = 15;
+		IntBuffer ib = BufferUtils.createIntBuffer(n*n*n);
+		
+		for (int x=0; x<n; x++) {
+			for (int y=0; y<n; y++) {
+				for (int z=0; z<n; z++) {
+					Vector3f v = new Vector3f(x,y,z);
+					v = v.add(new Vector3f(n/-2, n/-2, n/-2));
+					v = v.divide(n/-2);
+					float t = 1.f / (float) n;
+					v = v.add(new Vector3f(-t, -t, -t));
+					int pos = (x * n * n) + (y * n) + z;
+					if ((v.x * v.x) + (v.y * v.y) + (v.z * v.z) <= 1) {
+						ib.put(pos, 1);
+					}
+				}
+			}
+		}
+		
+		int uniVoxels = glGetUniformLocation(voxelShaderProgram, "voxels");
+		glUniform1iv(uniVoxels, ib);
+		
+//		Vector3f v000 = new Vector3f (1,0,0);
+//		Vector3f v001 = new Vector3f (1,0,0);
+//		Vector3f v010 = new Vector3f (1,0,0);
+//		Vector3f v011 = new Vector3f (0,0,0); 
+//		Vector3f v100 = new Vector3f (1,0,0);
+//		Vector3f v101 = new Vector3f (0,0,0);
+//		Vector3f v110 = new Vector3f (0,0,0);
+//		Vector3f v111 = new Vector3f (0,0,0);
+//		
+//		int uniVoxels = glGetUniformLocation(voxelShaderProgram, "voxels[0]");
+//		glUniform3fv(uniVoxels, v000.getBuffer());
+//		uniVoxels = glGetUniformLocation(voxelShaderProgram, "voxels[1]");
+//		glUniform3fv(uniVoxels, v001.getBuffer());
+//		uniVoxels = glGetUniformLocation(voxelShaderProgram, "voxels[2]");
+//		glUniform3fv(uniVoxels, v010.getBuffer());
+//		uniVoxels = glGetUniformLocation(voxelShaderProgram, "voxels[3]");
+//		glUniform3fv(uniVoxels, v011.getBuffer());
+//		uniVoxels = glGetUniformLocation(voxelShaderProgram, "voxels[4]");
+//		glUniform3fv(uniVoxels, v100.getBuffer());
+//		uniVoxels = glGetUniformLocation(voxelShaderProgram, "voxels[5]");
+//		glUniform3fv(uniVoxels, v101.getBuffer());
+//		uniVoxels = glGetUniformLocation(voxelShaderProgram, "voxels[6]");
+//		glUniform3fv(uniVoxels, v110.getBuffer());
+//		uniVoxels = glGetUniformLocation(voxelShaderProgram, "voxels[7]");
+//		glUniform3fv(uniVoxels, v111.getBuffer());
+		
+		
+		glUseProgram(wireShaderProgram);
+		uniModel = glGetUniformLocation(wireShaderProgram, "model");
+		model = new Matrix4f();//.multiply(Matrix4f.translate(-1, -1, -2));
+		glUniformMatrix4fv(uniModel, false, model.getBuffer());
+
+		uniView = glGetUniformLocation(wireShaderProgram, "view");
+		glUniformMatrix4fv(uniView, false, view.getBuffer());
+
+		uniProjection = glGetUniformLocation(wireShaderProgram, "projection");
+		glUniformMatrix4fv(uniProjection, false, projection.getBuffer());
+		
+//		int uniModelView = glGetUniformLocation(shaderProgram, "Modelview");
+//		Matrix4f mv = view.multiply(model);
+//		glUniformMatrix4fv(uniModelView, false, mv.getBuffer());
+		
+//		Vector3f cam = Matrix4f.inverse(mv).extractCameraPosition();
+		
+		
+//		int uniRO = glGetUniformLocation(shaderProgram, "campos");
+//		glUniform3f(uniRO, cam.x, cam.y, cam.z);
 	}
 	
 	public void updateUniMVP(Matrix4f view, Matrix4f projection) {
@@ -207,23 +327,47 @@ public class VoxelCubeRenderer {
 	}
 	
 	public void updateUniModel() {
-		int uniModel = glGetUniformLocation(shaderProgram, "model");
+		glUseProgram(voxelShaderProgram);
+		int uniModel = glGetUniformLocation(voxelShaderProgram, "model");
 		glUniformMatrix4fv(uniModel, false, model.getBuffer());
+		
+		glUseProgram(wireShaderProgram);
+		uniModel = glGetUniformLocation(wireShaderProgram, "model");
+		Matrix4f scaledModel = Matrix4f.scale(1.001f, 1.001f, 1.001f).multiply(model);
+		glUniformMatrix4fv(uniModel, false, scaledModel.getBuffer());
 	}
 	
 	public void updateUniView(Matrix4f view) {
-		int uniView = glGetUniformLocation(shaderProgram, "view");
+		glUseProgram(voxelShaderProgram);
+		int uniView = glGetUniformLocation(voxelShaderProgram, "view");
+		glUniformMatrix4fv(uniView, false, view.getBuffer());
+		
+		glUseProgram(wireShaderProgram);
+		uniView = glGetUniformLocation(wireShaderProgram, "view");
 		glUniformMatrix4fv(uniView, false, view.getBuffer());
 	}
 	
 	public void updateUniProjection(Matrix4f projection) {
-		int uniProjection = glGetUniformLocation(shaderProgram, "projection");
+		glUseProgram(voxelShaderProgram);
+		int uniProjection = glGetUniformLocation(voxelShaderProgram, "projection");
+		glUniformMatrix4fv(uniProjection, false, projection.getBuffer());
+		
+		glUseProgram(wireShaderProgram);
+		uniProjection = glGetUniformLocation(wireShaderProgram, "projection");
 		glUniformMatrix4fv(uniProjection, false, projection.getBuffer());
 	}
 	
 	public void render() {
+		glUseProgram(voxelShaderProgram);
+		glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
 		glBindVertexArray(vaoID);
 		glDrawArrays(GL_TRIANGLES, 0, 108);
+		
+		glUseProgram(wireShaderProgram);
+		glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+		glBindVertexArray(vaoID);
+		glDrawArrays(GL_TRIANGLES, 0, 108);
+		
 		glBindVertexArray(0);
 	}
 	
@@ -231,8 +375,11 @@ public class VoxelCubeRenderer {
 		 glDeleteVertexArrays(vaoID);
 		 glDeleteBuffers(vertexBufferID);
 		 glDeleteBuffers(colorBufferID);
-		 glDeleteShader(vertexShader);
-		 glDeleteShader(fragmentShader);
-		 glDeleteProgram(shaderProgram);
+		 glDeleteShader(voxelVertexShader);
+		 glDeleteShader(voxelFragmentShader);
+		 glDeleteProgram(voxelShaderProgram);
+		 glDeleteShader(wireVertexShader);
+		 glDeleteShader(wireFragmentShader);
+		 glDeleteProgram(wireShaderProgram);
 	}
 }
