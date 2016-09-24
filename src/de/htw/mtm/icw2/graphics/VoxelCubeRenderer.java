@@ -33,7 +33,7 @@ public class VoxelCubeRenderer {
 	private int wireVertexShader;
 	private int wireFragmentShader;
 	
-	private int textureID;
+	private int texID;
 	ByteBuffer texels;
 	
 	public Matrix4f model;
@@ -122,6 +122,29 @@ public class VoxelCubeRenderer {
 		generateColorBuffer();
 		loadAndCompileShaders();
 		setupShaderParameters(view, projection);
+	}
+
+	private int prepareTexture3d(final int width, final int height, final int depth, final ByteBuffer texels) {
+		//Texture3D tex = new Texture3D();
+		int texID = glGenTextures();
+
+		glEnable(GL_TEXTURE_3D);
+		glBindTexture(GL_TEXTURE_3D, texID);
+		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP);
+		glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA, width, height, depth, 0, GL_RGBA, GL_UNSIGNED_BYTE, texels);
+		
+		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_BASE_LEVEL, 0);
+		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAX_LEVEL, 4);
+				
+
+		//generate mipmaps
+		glGenerateMipmap(GL_TEXTURE_3D);
+
+		return texID;
 	}
 
 	private void generateAndBindVAO() {
@@ -247,29 +270,72 @@ public class VoxelCubeRenderer {
 		int uniProjection = glGetUniformLocation(voxelShaderProgram, "projection");
 		glUniformMatrix4fv(uniProjection, false, projection.getBuffer());
 		
+		int n = 100;
+		texels = BufferUtils.createByteBuffer(n*n*n*4);
 		
-		
-		int n = 15;
-		IntBuffer ib = BufferUtils.createIntBuffer(n*n*n);
-		
-		for (int x=0; x<n; x++) {
-			for (int y=0; y<n; y++) {
-				for (int z=0; z<n; z++) {
+//		int dimEnd = (n / 2);
+//		int dimStart = -dimEnd;
+
+		//byte a = 127;
+		byte b = (byte) (255 & 0xFF);
+		byte c = 0;
+		//texels.put(b); texels.put(c); texels.put(c); texels.put(b);
+		for (int z = 0; z < n; z++) {
+			for (int y = 0; y < n; y++) {
+				for (int x = 0; x < n; x++) {
+					
 					Vector3f v = new Vector3f(x,y,z);
 					v = v.add(new Vector3f(n/-2, n/-2, n/-2));
 					v = v.divide(n/-2);
 					float t = 1.f / (float) n;
 					v = v.add(new Vector3f(-t, -t, -t));
-					int pos = (x * n * n) + (y * n) + z;
+					
+					
+					texels.put(b); texels.put(c); texels.put(c);
 					if ((v.x * v.x) + (v.y * v.y) + (v.z * v.z) <= 1) {
-						ib.put(pos, 1);
+						 texels.put(b);
+					} else {
+						texels.put(c);
 					}
+					
+					
 				}
 			}
 		}
+		texels.rewind();
 		
-		int uniVoxels = glGetUniformLocation(voxelShaderProgram, "voxels");
-		glUniform1iv(uniVoxels, ib);
+		texID = prepareTexture3d(n, n, n, texels);
+		
+		int loc = glGetUniformLocation(voxelShaderProgram, "voxels");
+	    //First of all, we retrieve the location of the sampler in memory.
+	    glUniform1i(loc, 0);
+		
+//		IntBuffer ib = BufferUtils.createIntBuffer(n*n*n);
+//		
+//		for (int x=0; x<n; x++) {
+//			for (int y=0; y<n; y++) {
+//				for (int z=0; z<n; z++) {
+//					Vector3f v = new Vector3f(x,y,z);
+//					v = v.add(new Vector3f(n/-2, n/-2, n/-2));
+//					v = v.divide(n/-2);
+//					float t = 1.f / (float) n;
+//					v = v.add(new Vector3f(-t, -t, -t));
+//					int pos = (x * n * n) + (y * n) + z;
+//					if ((v.x * v.x) + (v.y * v.y) + (v.z * v.z) <= 1) {
+//						ib.put(pos, 1);
+//					}
+//				}
+//			}
+//		}
+		
+		
+		
+		
+		
+		
+		
+//		int uniVoxels = glGetUniformLocation(voxelShaderProgram, "voxels");
+//		glUniform1iv(uniVoxels, ib);
 		
 //		Vector3f v000 = new Vector3f (1,0,0);
 //		Vector3f v001 = new Vector3f (1,0,0);
@@ -358,6 +424,9 @@ public class VoxelCubeRenderer {
 	}
 	
 	public void render() {
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_3D, texID);
+		
 		glUseProgram(voxelShaderProgram);
 		glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
 		glBindVertexArray(vaoID);
@@ -381,5 +450,6 @@ public class VoxelCubeRenderer {
 		 glDeleteShader(wireVertexShader);
 		 glDeleteShader(wireFragmentShader);
 		 glDeleteProgram(wireShaderProgram);
+		 glDeleteTextures(texID);
 	}
 }
