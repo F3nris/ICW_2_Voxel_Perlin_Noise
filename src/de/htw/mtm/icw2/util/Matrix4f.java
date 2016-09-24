@@ -27,6 +27,8 @@ package de.htw.mtm.icw2.util;
 import java.nio.FloatBuffer;
 import org.lwjgl.BufferUtils;
 
+import Jama.Matrix;
+
 /**
  * This class represents a 4x4-Matrix. GLSL equivalent to mat4.
  *
@@ -433,5 +435,83 @@ public class Matrix4f {
         scaling.m22 = z;
 
         return scaling;
+    }
+    
+    /**
+     * Converted to Java from http://stackoverflow.com/a/14875512
+     * @param eye
+     * @param center
+     * @param up
+     * @return
+     */
+    public static Matrix4f lookAt(Vector3f eye, Vector3f center, Vector3f up) {
+
+        Vector3f f = center.subtract(eye).normalize();
+        Vector3f u = up.normalize();
+        Vector3f s = f.cross(u).normalize();
+        u = s.cross(f);
+
+        Matrix4f result = new Matrix4f();
+        result.m00 = s.x;
+        result.m10 = s.y;
+        result.m20 = s.z;
+        result.m01 = u.x;
+        result.m11 = u.y;
+        result.m21 = u.z;
+        result.m02 = -f.x;
+        result.m12 = -f.y;
+        result.m22 = -f.z;
+
+        return result.multiply(Matrix4f.translate(-eye.x,-eye.y,-eye.z));
+    }
+    
+    public static Matrix4f inverse(Matrix4f m) {
+    	double[][] vals = {
+    			{m.m00, m.m10,m.m20, m.m30},
+    			{m.m01, m.m11,m.m21, m.m31},
+    			{m.m02, m.m12,m.m22, m.m32},
+    			{m.m03, m.m13,m.m23, m.m33}
+    	};
+    	
+    	Matrix a = new Matrix(vals);
+    	a.inverse();
+    	
+    	Vector4f col1 = new Vector4f(
+    			(float) a.get(0,0),
+    			(float) a.get(1,0),
+    			(float) a.get(2,0),
+    			(float) a.get(3,0)
+    	);
+    	
+    	Vector4f col2 = new Vector4f(
+    			(float) a.get(0,1),
+    			(float) a.get(1,1),
+    			(float) a.get(2,1),
+    			(float) a.get(3,1)
+    	);
+    	
+    	Vector4f col3 = new Vector4f(
+    			(float) a.get(0,2),
+    			(float) a.get(1,2),
+    			(float) a.get(2,2),
+    			(float) a.get(3,2)
+    	);
+    	
+    	Vector4f col4 = new Vector4f(
+    			(float) a.get(0,3),
+    			(float) a.get(1,3),
+    			(float) a.get(2,3),
+    			(float) a.get(3,3)
+    	);
+    	
+    	return new Matrix4f(col1,col2,col3,col4);
+    }
+    
+    public Vector3f extractCameraPosition() {
+    	return new Vector3f (
+    			this.m30 / this.m33,
+    			this.m31 / this.m33,
+    			this.m32 / this.m33
+    	);
     }
 }
