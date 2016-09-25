@@ -11,11 +11,15 @@ import org.lwjgl.BufferUtils;
 import de.htw.mtm.icw2.graphics.renderer.VoxelRenderer;
 import de.htw.mtm.icw2.graphics.renderer.WireframeRenderer;
 import de.htw.mtm.icw2.util.Matrix4f;
+import de.htw.mtm.icw2.util.Vector4f;
 
-public class VoxelCube {
+public class VoxelCube implements Comparable<VoxelCube>{
+	private String name;
 	private int vaoID;
 	private int vertexBufferID;
 	private int colorBufferID;
+	
+	private float distanceToCamera = 0;
 	
 	private VoxelRenderer vr;
 	private WireframeRenderer wfr;
@@ -71,6 +75,12 @@ public class VoxelCube {
 		init(view, projection);
 	}
 	
+	public VoxelCube(String name, Matrix4f view, Matrix4f projection, Matrix4f modelM) {
+		model = modelM;
+		this.name = name;
+		init(view, projection);
+	}
+	
 	private void init(Matrix4f view, Matrix4f projection) {
 		generateAndBindVAO();
 		generateVertexBuffer();
@@ -92,6 +102,7 @@ public class VoxelCube {
 		System.out.println(vaoID);
 	}
 	
+	
 	private void generateVertexBuffer () {
 		// 12 Triangles to draw a cube ==> 12 * 3 = 36 * 3 = 108
 		FloatBuffer vertices = BufferUtils.createFloatBuffer(108);
@@ -108,21 +119,25 @@ public class VoxelCube {
 		glBindBuffer(GL_ARRAY_BUFFER, colorBufferID);
 	}
 	
+	
 	public void updateUniMVP(Matrix4f view, Matrix4f projection) {
 		updateUniModel();
 		updateUniView(view);
 		updateUniProjection(projection);
 	}
 	
+	
 	public void updateUniModel() {
 		vr.updateUniModel(model);
 		wfr.updateUniModel(model);
 	}
 	
+	
 	public void updateUniView(Matrix4f view) {
 		vr.updateUniView(view);
 		wfr.updateUniView(view);
 	}
+	
 	
 	public void updateUniProjection(Matrix4f projection) {
 		vr.updateUniProjection(projection);
@@ -150,5 +165,29 @@ public class VoxelCube {
 		 wfr.delete();
 		 vr.delete();
 		 vr.deleteTexture();
+	}
+	
+	public void setDistanceToCamera(Matrix4f view) {
+		Vector4f pos = view.multiply(model).multiply(new Vector4f(1,1,1,1));
+		
+		distanceToCamera = ((pos.x + pos.x) * (pos.x + pos.x)) 
+				+ ((pos.y + pos.y) * (pos.y + pos.y)) 
+				+ ((pos.z + pos.z) * (pos.z + pos.z));
+	}
+	
+	public float getDistanceToCamera() {
+		return distanceToCamera;
+	}
+
+	@Override
+	public int compareTo(VoxelCube o) {
+		int result = 0;
+		float otherDist = o.getDistanceToCamera();
+		if (otherDist < distanceToCamera) {
+			result = -1;
+		} else if (otherDist > distanceToCamera) {
+			result = 1;
+		}
+		return result;
 	}
 }

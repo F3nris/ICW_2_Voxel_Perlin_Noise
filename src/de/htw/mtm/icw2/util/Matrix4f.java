@@ -437,34 +437,6 @@ public class Matrix4f {
         return scaling;
     }
     
-    /**
-     * Converted to Java from http://stackoverflow.com/a/14875512
-     * @param eye
-     * @param center
-     * @param up
-     * @return
-     */
-    public static Matrix4f lookAt(Vector3f eye, Vector3f center, Vector3f up) {
-
-        Vector3f f = center.subtract(eye).normalize();
-        Vector3f u = up.normalize();
-        Vector3f s = f.cross(u).normalize();
-        u = s.cross(f);
-
-        Matrix4f result = new Matrix4f();
-        result.m00 = s.x;
-        result.m10 = s.y;
-        result.m20 = s.z;
-        result.m01 = u.x;
-        result.m11 = u.y;
-        result.m21 = u.z;
-        result.m02 = -f.x;
-        result.m12 = -f.y;
-        result.m22 = -f.z;
-
-        return result.multiply(Matrix4f.translate(-eye.x,-eye.y,-eye.z));
-    }
-    
     public static Matrix4f inverse(Matrix4f m) {
     	double[][] vals = {
     			{m.m00, m.m10,m.m20, m.m30},
@@ -507,11 +479,11 @@ public class Matrix4f {
     	return new Matrix4f(col1,col2,col3,col4);
     }
     
-    public Vector3f extractCameraPosition() {
+    public Vector3f extractPosition() {
     	return new Vector3f (
-    			this.m30 / this.m33,
-    			this.m31 / this.m33,
-    			this.m32 / this.m33
+    			this.m03,
+    			this.m13,
+    			this.m23
     	);
     }
 }

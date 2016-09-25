@@ -8,8 +8,8 @@ out vec4 fragColor;
 
 uniform sampler3D voxels;
 
-const int MAX_SAMPLES = 1000;
-const float stepSize = 0.002;
+const int MAX_SAMPLES = 500;
+const float stepSize = 0.004;
 
 void main() {
 
