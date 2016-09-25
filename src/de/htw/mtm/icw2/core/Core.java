@@ -3,23 +3,12 @@ package de.htw.mtm.icw2.core;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
 
-//import Jama.Matrix;
 import de.htw.mtm.icw2.graphics.VoxelCubeRenderer;
 import de.htw.mtm.icw2.util.Matrix4f;
-import de.htw.mtm.icw2.util.Vector3f;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL20.glGetUniformLocation;
-//import static org.lwjgl.opengl.GL20.glUniformMatrix4fv;
 import static org.lwjgl.system.MemoryUtil.*;
-
-//import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL12.*;
-import static org.lwjgl.opengl.GL15.*;
-import static org.lwjgl.opengl.GL20.*;
-import static org.lwjgl.opengl.GL30.*;
-
 
 /**
  * Inspired by: https://github.com/SilverTiger/lwjgl3-tutorial/blob/master/src/silvertiger/tutorial/lwjgl/Introduction.java
@@ -33,10 +22,10 @@ public class Core {
 	private GLFWErrorCallback errorCallback;
 	private long window;
 	private VoxelCubeRenderer voxCube;
+	private VoxelCubeRenderer voxCube2;
 	
 	Matrix4f view;
 	Matrix4f projection;
-	private double prevTime = glfwGetTime();
 	
 	private void init() {
 		initGLFW();
@@ -46,46 +35,19 @@ public class Core {
 		GL.createCapabilities();
 		glfwSwapInterval(1);
 		
-		glEnable(GL_DEPTH_TEST);
-		glDepthFunc(GL_LESS);
+//		glEnable(GL_DEPTH_TEST);
+//		glDepthFunc(GL_ALWAYS);
 		
 		glEnable(GL_BLEND);
 	    glEnable(GL_CULL_FACE);
 	    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	    
-	    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
-	    //Matrix4f.inverse(new Matrix4f());
-		
-//	    Vector3f eyePos = new Vector3f(2, 2, 8);
-//	    
-//	    Vector3f up = new Vector3f(0, 1, 0); 
-//	    Vector3f target = new Vector3f();
 	    
-	    //ViewMatrix = Matrix4::lookAt(EyePosition, target, up);
-	    
-//	    view = Matrix4f.lookAt(eyePos, target, up);
-	    
-	    
-	    //view = Matrix4f.translate(0.0f, 0.0f, -2);
-	    Matrix4f Tr	= Matrix4f.translate(0.0f, 0.0f, -3);
-	    Matrix4f Rx	= Tr.multiply(Matrix4f.rotate(0, 1.0f, 0.0f, 0.0f));
-	    view = Rx.multiply(Matrix4f.rotate(180, 0.0f, 1.0f, 0.0f));
-	    
-		//view = new Matrix4f();
-		//view = view.multiply(Matrix4f.translate(0, 0, -1.5f));
-		projection = Matrix4f.perspective((float) Math.toDegrees(0.7), 800f/800f, 1.f, 100f);
-		//projection = projection.multiply(Matrix4f.translate(0, 0, -1.5f));
+	    view = Matrix4f.translate(0.0f, 0.0f, -3.0f);
+	    projection = Matrix4f.perspective((float) Math.toDegrees(0.7), 800f/800f, 1.f, 100f);
 		
 		voxCube = new VoxelCubeRenderer(view, projection);
-		//float abc = 6;
-//		float focalLength = 1.0f / (float) Math.tan(0.7f / 2f);
-//		System.out.println("FL: "+focalLength);
-//		int uniFL = glGetUniformLocation(voxCube.shaderProgram, "FocalLength");
-//		glUniform1f(uniFL, focalLength);
-//	    //SetUniform("FocalLength", focalLength);
-//
-//		int uniWS = glGetUniformLocation(voxCube.shaderProgram, "WindowSize");
-//	    glUniform2f(uniWS, 800f, 800f);
+		voxCube2 = new VoxelCubeRenderer(view, projection, new Matrix4f().multiply(Matrix4f.translate(1.f, 1.f, 0.f)));
 	}
 	
 	private void initGLFW() {
@@ -150,14 +112,14 @@ public class Core {
 			glClearColor(0.3f, 0.67f, 1.0f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 			
-			//voxCube.model = voxCube.model.multiply(Matrix4f.rotate(angle, 0f, 1f, 0f));
-			//voxCube.updateUniModel();
+			
+			
+			voxCube2.updateUniMVP(view, projection);
+			voxCube2.render();
 			
 			voxCube.updateUniMVP(view, projection);
-			
-			
 			voxCube.render();
-			
+		
 			glfwSwapBuffers(window);
 			glfwPollEvents();
 		}
@@ -165,6 +127,7 @@ public class Core {
 	
 	private void dispose() {
 		voxCube.delete();
+		voxCube2.delete();
 		
 		glfwDestroyWindow(window);
 		keyCallback.release();
@@ -182,5 +145,4 @@ public class Core {
 	public static void main(String[] args) {
 		new Core().run();
 	}
-
 }
