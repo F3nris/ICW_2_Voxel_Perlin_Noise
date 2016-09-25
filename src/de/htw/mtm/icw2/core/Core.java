@@ -3,7 +3,7 @@ package de.htw.mtm.icw2.core;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
 
-import de.htw.mtm.icw2.graphics.VoxelCubeRenderer;
+import de.htw.mtm.icw2.graphics.VoxelCube;
 import de.htw.mtm.icw2.util.Matrix4f;
 
 import static org.lwjgl.glfw.GLFW.*;
@@ -21,8 +21,8 @@ public class Core {
 	private GLFWKeyCallback keyCallback;
 	private GLFWErrorCallback errorCallback;
 	private long window;
-	private VoxelCubeRenderer voxCube;
-	private VoxelCubeRenderer voxCube2;
+	private VoxelCube voxCube;
+	private VoxelCube voxCube2;
 	
 	Matrix4f view;
 	Matrix4f projection;
@@ -46,8 +46,8 @@ public class Core {
 	    view = Matrix4f.translate(0.0f, 0.0f, -3.0f);
 	    projection = Matrix4f.perspective((float) Math.toDegrees(0.7), 800f/800f, 1.f, 100f);
 		
-		voxCube = new VoxelCubeRenderer(view, projection);
-		voxCube2 = new VoxelCubeRenderer(view, projection, new Matrix4f().multiply(Matrix4f.translate(1.f, 1.f, 0.f)));
+		voxCube = new VoxelCube(view, projection);
+		voxCube2 = new VoxelCube(view, projection, new Matrix4f().multiply(Matrix4f.translate(1.f, 1.f, 0.f)));
 	}
 	
 	private void initGLFW() {
