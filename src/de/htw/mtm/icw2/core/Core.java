@@ -5,6 +5,7 @@ import org.lwjgl.opengl.*;
 
 import de.htw.mtm.icw2.graphics.VoxelCube;
 import de.htw.mtm.icw2.util.Matrix4f;
+import de.htw.mtm.icw2.util.VolumeGenerator;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -35,9 +36,6 @@ public class Core {
 		GL.createCapabilities();
 		glfwSwapInterval(1);
 		
-//		glEnable(GL_DEPTH_TEST);
-//		glDepthFunc(GL_ALWAYS);
-		
 		glEnable(GL_BLEND);
 	    glEnable(GL_CULL_FACE);
 	    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -47,7 +45,10 @@ public class Core {
 	    projection = Matrix4f.perspective((float) Math.toDegrees(0.7), 800f/800f, 1.f, 100f);
 		
 		voxCube = new VoxelCube(view, projection);
+		voxCube.setVoxelData(VolumeGenerator.generateSphere(128), 128);
+		
 		voxCube2 = new VoxelCube(view, projection, new Matrix4f().multiply(Matrix4f.translate(1.f, 1.f, 0.f)));
+		voxCube2.setVoxelData(VolumeGenerator.generateCylinder(128), 128);
 	}
 	
 	private void initGLFW() {

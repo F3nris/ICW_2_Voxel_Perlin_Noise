@@ -3,6 +3,7 @@ package de.htw.mtm.icw2.graphics;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL30.*;
 
+import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 
 import org.lwjgl.BufferUtils;
@@ -83,7 +84,6 @@ public class VoxelCube {
 		
 		vr = new VoxelRenderer();
 		vr.setupBasicShaderParameters(model, view, projection);
-		vr.generateVolumeTexture();
 	}
 	
 	private void generateAndBindVAO() {
@@ -127,6 +127,10 @@ public class VoxelCube {
 	public void updateUniProjection(Matrix4f projection) {
 		vr.updateUniProjection(projection);
 		wfr.updateUniProjection(projection);
+	}
+	
+	public void setVoxelData(ByteBuffer buffer, int dim) {
+		vr.generateVolumeTexture(buffer, dim);
 	}
 	
 	public void render() {

@@ -6,8 +6,6 @@ in mat4 mv;
 
 out vec4 fragColor;
 
-const int n = 20;
-//uniform int voxels[n*n*n];
 uniform sampler3D voxels;
 
 const int MAX_SAMPLES = 1000;
@@ -27,24 +25,22 @@ void main() {
 	
 	fragColor = vec4(0,0,0,0);
 	
+	bool stop = false;
+	
 	for (int i=0; i<MAX_SAMPLES; i++) {
 		dataPos = dataPos + dirStep;
 		
-		int x = int(floor(dataPos.x * n));
-		int y = int(floor(dataPos.y * n));
-		int z = int(floor(dataPos.z * n));
-		
-		if (x >= n || y >= n || z >= n || x < 0 || y < 0 || z < 0) {
-			alpha = 0;
+		if (dataPos.x >= 1 || dataPos.y >= 1 || dataPos.z >= 1 || dataPos.x < 0 || dataPos.y < 0 || dataPos.z < 0) {
+		//if(dot(sign(dataPos - texMin), sign(texMax-dataPos)) < 3.0) {
 			break;
 		}
 		
 		vec4 texColor = texture(voxels, dataPos);
-		if (texColor.a > 0.5) {
+		if (texColor.a != 0) {
 			fragColor = texColor;
 		}
 		
-		int pos = (x * n * n) + (y * n) + z;
+		//int pos = (x * n * n) + (y * n) + z;
 		
 		//if (voxels[pos] != 0) {
 		//	alpha = 1;
